@@ -1,5 +1,10 @@
+#  Enveroupman 
 .env/
 
+#  IDE
 .idea/
 
+#  Py 
 *.pyc
+__pycache__/
+*.egg-info

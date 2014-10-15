@@ -15,7 +15,7 @@ class ChechoutApi(object):
     __cache = {}
 
     __ticket__timeout = 60 * 60
-    __host = ''
+    __host = 'http:/platform.checkout.ru'
     __urls = {
         'ticket': '/service/login/ticket/'
     }
@@ -39,9 +39,8 @@ class ChechoutApi(object):
             return False
         return True
 
-
     def __get_ticket(self):
-        return self._response('ticket')
+        return self._response('ticket', ticket=False)
 
     @classmethod
     def __build_full_url(cls, name):
@@ -50,7 +49,7 @@ class ChechoutApi(object):
 
 
     def _response(self, name, method='get', data={}, ticket=True):
-        data = deepcopy(get)
+        data = deepcopy(data)
         method = method.upper()
         
         if ticket and method == 'GET':
