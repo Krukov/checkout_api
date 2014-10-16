@@ -10,7 +10,7 @@ __all__ = ['CheckoutApi']
 _request_params = {'headers': {'User-Agent': 'Python api wrapper'}}
 
 
-class _Cache:
+class _Cache(object):
     _cache = {}
     
     def __set__(self, instance, value):
@@ -41,7 +41,6 @@ class CheckoutApi(object):
     """docstring for ChechoutApi"""
     def __init__(self, key):
         self._key = key
-        self._cache = {}
 
     @property
     def ticket(self):

@@ -60,6 +60,7 @@ def api_test(func):
 #  TESTS
 # ======
 
+
 @responses.activate
 @api_test
 def test_ticket_getting():
