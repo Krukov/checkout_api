@@ -1,4 +1,4 @@
-#  Enveroupman 
+#  Env
 .env/
 
 #  IDE
@@ -8,3 +8,7 @@
 *.pyc
 __pycache__/
 *.egg-info
+
+
+# Tests
+.coverage

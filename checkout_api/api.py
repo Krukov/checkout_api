@@ -1,51 +1,71 @@
 # -*- encoding: utf-8 -*-
 
 import os
+import datetime
 from copy import deepcopy
 
 from requests import Request, Session
 
-__all__ = ['ChechoutApi',]
+__all__ = ['CheckoutApi',]
 
-_request_params = {'headers': 'Python api wrapper'}
+_request_params = {'headers': {'User-Agent': 'Python api wrapper'}}
 
 
-class ChechoutApi(object):
+class _Cache:
+    
+    def __set__(self, instance, value):
+        if instance is None:
+            return
+
+        instance.__cache[instance.__key] = value
+
+    def __get__(self, instance, _=None):
+        if instance is None:
+            return
+        return instance.__cache[instance.__key]
+
+
+
+class CheckoutApi(object):
 
     __cache = {}
 
     __ticket__timeout = 60 * 60
-    __host = 'http:/platform.checkout.ru'
+    __host = 'http://platform.checkout.ru/'
     __urls = {
-        'ticket': '/service/login/ticket/'
+        'ticket': 'service/login/ticket/'
     }
 
     """docstring for ChechoutApi"""
     def __init__(self, key):
         self.__key = key
+        self.__cache[key] = {}
     
+    _cache = _Cache()    
+
     @property
     def ticket(self):
         if 'ticket' not in self.__cache:
-            self.__cache['ticket'] = self.__get_ticket()
+            self._cache['ticket'] = self.__get_ticket()
 
         if not self.__check_ticket_time():
-            self.__cache['ticket'] = self.__get_ticket()
+            self._cache['ticket'] = self.__get_ticket()
 
-        return self.__cache['ticket']
+        return self._cache['ticket']
 
     def __check_ticket_time(self):
-        if self.__cache.get('last_time') > self.__ticket__timeout: # todo: check time 
+        delta = self._cache.get('ticket_time') - datetime.datetime.now()
+        if delta > datetime.timedelta(seconds=self.__ticket__timeout): 
             return False
         return True
 
     def __get_ticket(self):
-        return self._response('ticket', ticket=False)
+        return self._response('ticket', ticket=False).get('ticket')
 
     @classmethod
     def __build_full_url(cls, name):
         _dir = cls.__urls.get(name, name)
-        return os.path.join(cls.__host, _dir)
+        return cls.__host + _dir
 
 
     def _response(self, name, method='get', data={}, ticket=True):
@@ -63,5 +83,7 @@ class ChechoutApi(object):
 
     def _process_result(self, response):
         if response.ok:
+            self._cache['ticket_time'] = datetime.datetime.now()
             return response.json()
         response.raise_for_status()
+
