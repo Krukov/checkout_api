@@ -52,8 +52,9 @@ api = CheckoutApi(_test_api_key)
 def api_test(func):
     def test():
         add_callbacks()
-        func()
+        res = func()
         api._clear_cache()
+        return res
     return test
 
 #  TESTS
@@ -83,3 +84,17 @@ def test_error():
 
     assert api.ticket != _ticket_test
     assert len(responses.calls) == 1
+
+
+@responses.activate
+@api_test
+def test_timeout():
+    import time
+    api._CheckoutApi__ticket__timeout = 1
+    assert api.ticket == _ticket_test
+    assert len(responses.calls) == 1
+
+    time.sleep(2)
+    assert api.ticket == _ticket_test
+    assert len(responses.calls) == 2
+    api._CheckoutApi_ticket__timeout = 60 * 60

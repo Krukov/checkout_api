@@ -55,7 +55,7 @@ class CheckoutApi(object):
 
     def __check_ticket_time(self):
         if 'ticket_time' in self._cache:
-            delta = self._cache.get('ticket_time') - datetime.datetime.now()
+            delta = datetime.datetime.now() - self._cache.get('ticket_time')
             if delta > datetime.timedelta(seconds=self.__ticket__timeout):
                 return False
         return True
