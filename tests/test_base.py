@@ -35,41 +35,51 @@ def callback(request):
                 pass
             return _response()    
 
-
     elif request.method.upper() == 'POST':
         payload = dict(parse_qsl(request.body))
 
-for method in [responses.GET, responses.POST]:
-    responses.add_callback(
-        method, re.compile('https?://.*/.*'),
-        callback=callback, content_type='application/json'
-    )
 
+def add_callbacks():
+    for method in [responses.GET, responses.POST]:
+        responses.add_callback(
+            method, re.compile('https?://.*/.*'),
+            callback=callback, content_type='application/json'
+        )
+
+api = CheckoutApi(_test_api_key)
+
+
+def api_test(func):
+    def test():
+        add_callbacks()
+        func()
+        api._clear_cache()
+    return test
 
 #  TESTS
 # ======
 
-api = CheckoutApi(_test_api_key)
-
 @responses.activate
+@api_test
 def test_ticket_getting():
     assert api.ticket == _ticket_test
     assert len(responses.calls) == 1
 
 
 @responses.activate
+@api_test
 def test_ticket_cache():
     assert api.ticket == _ticket_test
-    
+
     api2 = CheckoutApi(_test_api_key)
     assert api2.ticket == _ticket_test
     assert len(responses.calls) == 1
 
 
 @responses.activate
+@api_test
 def test_error():
-    api2 = CheckoutApi(_test_api_key+'wrongdata')
-    
-    assert api2.ticket != _ticket_test
+    api = CheckoutApi(_test_api_key+'wrongdata')
+
+    assert api.ticket != _ticket_test
     assert len(responses.calls) == 1
-    

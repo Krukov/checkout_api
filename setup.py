@@ -21,8 +21,16 @@ setup(
     author_email='frog-king69@yandex.ru',
     description='Python API wrappper for Checkout',
     long_description=open('README.rst').read(),
-
-    install_requires=list(open('test_requirements.txt').readlines()),
+    requires=[
+        'requests (>=2.4)',
+        'responses (>=0.3)',
+        'six (>=1.7.3)',
+    ],
+    install_requires=[
+        'requests >=2.4',
+        'responses >=0.3',
+        'six >=1.7.3',
+    ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
