@@ -97,4 +97,4 @@ def test_timeout():
     time.sleep(2)
     assert api.ticket == _ticket_test
     assert len(responses.calls) == 2
-    api._CheckoutApi_ticket__timeout = 60 * 60
+    api._CheckoutApi__ticket__timeout = 60 * 60
