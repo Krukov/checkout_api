@@ -43,7 +43,13 @@ class CheckoutApi(object):
         'getPostalCodeByAdress': 'service/checkout/getPostalCodeByAdress/',
         'getPlaceByPostalCode': 'service/checkout/getPlaceByPostalCode/',
         'createOrder': 'service/order/create/',
+        'status': 'service/order/staus/',
+        'statushistory': 'service/order/statushistory/',
+        'platformstatushistory': 'service/order/platformstatushistory/',
     }
+
+    CANCELED_STATUS = 'CANCELED_BEFORE_SHIPMENT'
+    CREATED_STATUS = 'CREATED'
 
     def __init__(self, key):
         self._key = key
@@ -159,11 +165,8 @@ class CheckoutApi(object):
         """
         return self._response('getPlaceByPostalCode', data={'postIndex': code})
 
-    def create_order(self, goods, delivery, user,
-                     comment, order_id, payment_method, delivery_cost):
-        """
-        Создние заказа
-        """
+    def __order(self, goods, delivery, user, comment,
+                order_id, payment_method, delivery_cost=None, edit=False):
         if payment_method not in ['cash', 'prepay']:
             raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
         data = {
@@ -175,4 +178,60 @@ class CheckoutApi(object):
             'paymentMethod': paymentMethod,
             'forcedCost': delivery_cost,
             }
-        return self._response('createOrder', method='post', data=data}
+            url = 'createOrder'
+            if edit:
+                url = self.__urls['createOrder'] + edit
+        return self._response(url, method='post', data=data)
+
+    def create_order(self, *args, **kwargs):
+        """
+        Создние заказа
+        :param goods: array of order items. item is a dict with keys - name, code, variantCode,
+             quantity, assessedCost, payCost, weight
+        :param delivery: looking for create_delivery method
+        :param user: dict with keys - fullname, email, phone
+        :param comment: just comment
+        :param order_id: order number in shop system
+        :param payment_method: can be 'cash' or 'prepay'
+        :param delivery_cost: price for delivery (see 'calculation' method)
+        :return dict like 
+            "order": {"id": номер закза в платформе, тип - натуральное},
+            "delivery": {
+                "id": идентифкатор службы доставки, тип - натуральное "serviceName": "название службы доставки", тип - строка
+                "cost": итогвое значение стоимости доставки по даному закзу.
+            }
+        """
+        return self.__order(*args, **kwargs, edit=False)
+
+    def edit_order(self, *args, **kwargs):
+        return self.__order(*args, **kwargs, edit=kwargs.pop('id'))
+
+    def _change_status(self, order_id, status):
+        url = self.__urls['status'] + order_id
+        return self._response(url, method='post', data={'status': status})
+or
+    def cancel_order(self, order_id):
+        """
+        Перевод заказа в статус отмены
+        """
+        return self._change_status(order_id, self.CANCELED_STATUS)
+
+    def change_status_to_created(self, order_id):
+        """
+        Если заказ в статусе отмены то его можно перевести в статус создан
+        """
+        return self._change_status(order_id, self.CREATED)
+
+    def get_order_info(self, order_id):
+        """
+        История смены статуса заказа и информация о  заказе
+        """
+        url = self.__urls['statushistory'] + order_id
+        return self._response(url, data={'API_KEY': self._key}, ticket=False)
+
+    def get_status_history(self, order_id):
+        """
+        История смены статуса заказа
+        """
+        url = self.__urls['platformstatushistory'] + order_id
+        return self._response(url, data={'API_KEY': self._key}, ticket=False)
