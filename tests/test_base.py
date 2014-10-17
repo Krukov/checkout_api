@@ -26,7 +26,7 @@ def callback(request):
         return status, {}, json.dumps(response)
     
     if request.method.upper() == 'GET':
-        payload = dict(parse_qsl(request.body))
+        payload = dict(parse_qsl(request.body or ''))
 
         if 'ticket' in request.url:
             if request.url.split('/')[-1] == _test_api_key:
