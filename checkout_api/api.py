@@ -182,18 +182,24 @@ class CheckoutApi(object):
         if payment_method not in ['cash', 'prepay']:
             raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
         data = {
-            'goods': goods,
+            'goods': list(goods),
             'delivery': delivery,
             'user': user,
             'comment': comment, 
             'shopOrderId': order_id,
             'paymentMethod': payment_method,
-            'forcedCost': delivery_cost,
         }
+        if delivery_cost is not None:
+            data['forcedCost'] = delivery_cost
+        
         url = 'createOrder'
         if edit:
             url = self.__urls['createOrder'] + edit
         return self._response(url, method='post', data=data)
+
+    @staticmethod
+    def create_delivery(**kwargs):
+        pass # TODO
 
     def create_order(self, *args, **kwargs):
         """
