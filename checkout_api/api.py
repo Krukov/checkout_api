@@ -1,6 +1,7 @@
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import datetime
+import json
 from copy import deepcopy
 
 from requests import Request, Session
@@ -30,7 +31,7 @@ class _Cache(object):
 
 
 class CheckoutApi(object):
-    """Chechout Api (http://www.checkout.ru/)"""
+    """Checkout Api (http://www.checkout.ru/)"""
     
     _cache = _Cache()  # cross instance cache for ticket and so on
     __ticket__timeout = 60 * 60
@@ -182,7 +183,7 @@ class CheckoutApi(object):
         if payment_method not in ['cash', 'prepay']:
             raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
         data = {
-            'goods': list(goods),
+            'goods': json.dumps(list(goods)),
             'delivery': delivery,
             'user': user,
             'comment': comment, 
@@ -199,7 +200,7 @@ class CheckoutApi(object):
 
     @staticmethod
     def create_delivery(**kwargs):
-        pass # TODO
+        pass  # TODO
 
     def create_order(self, *args, **kwargs):
         """

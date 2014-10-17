@@ -1,10 +1,11 @@
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import json
 import re
 
 import pytest
 import responses
+from requests.exceptions import HTTPError
 
 from six.moves.urllib.parse import parse_qsl
 
@@ -25,8 +26,8 @@ def callback(request):
         return status, {}, json.dumps(response)
     
     if request.method.upper() == 'GET':
-        payload = json.loads(request.body or '{}')
-    
+        payload = dict(parse_qsl(request.body))
+
         if 'ticket' in request.url:
             if request.url.split('/')[-1] == _test_api_key:
                 response.update({'ticket': _ticket_test,
@@ -36,9 +37,9 @@ def callback(request):
                 return _response(400)
         if 'ticket' not in payload and 'API_KEY' not in payload:
             return _response(400)
-        if not (payload.get('ticket') == _ticket_test 
+        if not (payload.get('ticket') == _ticket_test
                 or payload.get('API_KEY') == _test_api_key):
-            return _response(400) 
+            return _response(400)
         payload.pop('ticket', None)
         payload.pop('API_KEY', None)
     elif request.method.upper() == 'POST':
@@ -47,8 +48,10 @@ def callback(request):
             return _response(400)
         payload.pop('apiKey', None)
     response['status'] = 'ok'
-    response['data'] = payload    
+    response['data'] = payload
+    response['suggestions'] = {'status': 'ok', 'data': payload}
     return _response()
+
 
 def add_callbacks():
     for method in [responses.GET, responses.POST]:
@@ -62,9 +65,9 @@ api = CheckoutApi(_test_api_key)
 
 def api_test(func):
     def test():
+        api._clear_cache()
         add_callbacks()
         res = func()
-        api._clear_cache()
         return res
     return test
 
@@ -93,8 +96,8 @@ def test_ticket_cache():
 @api_test
 def test_error():
     api = CheckoutApi(_test_api_key+'wrongdata')
-
-    assert api.ticket != _ticket_test
+    with pytest.raises(HTTPError):
+        api.ticket
     assert len(responses.calls) == 1
 
 
@@ -133,11 +136,11 @@ def test_calculation():
 @responses.activate
 @api_test
 def test_create_order():
-    resp = api.create_order(range(1), 'delivery', user=user,
+    resp = api.create_order(range(2), 'delivery', user='user',
                             comment='comment', order_id='order',
                             payment_method='cash')
     assert resp['status'] == 'ok'
-    assert resp['data'] == {'goods': range(1), 'delivery': 'delivery',
+    assert resp['data'] == {'goods': '[0, 1]', 'delivery': 'delivery',
                             'user': 'user', 'comment': 'comment', 'shopOrderId': 'order',
                             'paymentMethod': 'cash'}
 
