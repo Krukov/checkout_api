@@ -30,20 +30,31 @@ class _Cache(object):
 
 
 class CheckoutApi(object):
-
-    _cache = _Cache()
+    """Chechout Api (http://www.checkout.ru/)"""
+    
+    _cache = _Cache()  # cross instance cache for ticket and so on
     __ticket__timeout = 60 * 60
     __host = 'http://platform.checkout.ru/'
     __urls = {
-        'ticket': 'service/login/ticket/',
+        'getTicket': 'service/login/ticket/',
+        'getPlacesByQuery': 'service/checkout/getPlacesByQuery/',
+        'calculation': 'service/checkout/calculation/',
+        'getStreetsByQuery': 'service/checkout/getStreetsByQuery/',
+        'getPostalCodeByAdress': 'service/checkout/getPostalCodeByAdress/',
+        'getPlaceByPostalCode': 'service/checkout/getPlaceByPostalCode/',
+        'createOrder': 'service/order/create/',
     }
 
-    """docstring for ChechoutApi"""
     def __init__(self, key):
         self._key = key
 
     @property
     def ticket(self):
+        """
+        Session key
+        Used is some api methods like signature, 
+        valid only in 60 min(update after using)
+        """
         if 'ticket' not in self._cache.keys():
             self._cache['ticket'] = self.__get_ticket()
 
@@ -60,7 +71,7 @@ class CheckoutApi(object):
         return True
 
     def __get_ticket(self):
-        url = self.__urls.get('ticket') + self._key
+        url = self.__urls.get('getTicket') + self._key
         return self._response(url, ticket=False).get('ticket')
 
     @classmethod
@@ -68,12 +79,14 @@ class CheckoutApi(object):
         _dir = cls.__urls.get(name, name)
         return cls.__host + _dir
 
-    def _response(self, name, method='get', data={}, ticket=True):
+    def _response(self, name, method='GET', data={}, ticket=True):
         data = deepcopy(data)
         method = method.upper()
         
         if ticket and method == 'GET':
             data['ticket'] = self.ticket
+        elif method == 'POST':
+            data['apiKey'] = self._key
 
         session = Session()
         request = Request(method, self.__build_full_url(name),
@@ -94,3 +107,72 @@ class CheckoutApi(object):
     def _set_host(self, value):
         self.__host = value
 
+    # METHODS
+    
+    def get_places(self, query):
+        """
+        Получение списка населных пунктов
+        """
+        resp = self._response('getPlacesByQuery', data={'place': query})
+        return rest.get('suggestions')
+
+    def calculation(self, place, price, weight, count, assessed=None):
+        """
+        Расчет стоимости и сроков доставки
+        """
+        data = {
+            'placeId': place,
+            'totalSum': price,
+            'assessedSum': assessed or price,
+            'totalWeight': weight,
+            'itemsCount': count,
+        }
+        resp = self._response('calculation', data=data)
+        return resp
+
+    def get_streets(self, place, query):
+        """
+        Получение списка улиц
+        """
+        resp = self._response('getStreetsByQuery',
+                              data={'placeId': place, 'street': query})
+        return resp.get('suggestions')
+
+    def get_postcode(self, street, house, housing=None, building=None):
+        """
+        Получение почтового индекса
+        """
+        data = {
+            'streetId': street,
+            'house': house,
+        }
+        if housing is not None:
+            data['housing'] = housing
+        if building is not None:
+            data['building'] = building
+        resp = self._response('getPostalCodeByAdress', data=data)
+        return resp.get('postindex')
+
+    def get_place_by_postcode(self, code):
+        """
+        Получение населного пункта по почтовму индексу
+        """
+        return self._response('getPlaceByPostalCode', data={'postIndex': code})
+
+    def create_order(self, goods, delivery, user,
+                     comment, order_id, payment_method, delivery_cost):
+        """
+        Создние заказа
+        """
+        if payment_method not in ['cash', 'prepay']:
+            raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
+        data = {
+            'goods': goods,
+            'delivery': delivery,
+            'user': user,
+            'comment': comment, 
+            'shopOrderId': order_id,
+            'paymentMethod': paymentMethod,
+            'forcedCost': delivery_cost,
+            }
+        return self._response('createOrder', method='post', data=data}
