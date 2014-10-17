@@ -133,7 +133,7 @@ def test_calculation():
 @responses.activate
 @api_test
 def test_create_order():
-    resp = api.create_order(range(1), 'delivery', user=user
+    resp = api.create_order(range(1), 'delivery', user=user,
                             comment='comment', order_id='order',
                             payment_method='cash')
     assert resp['status'] == 'ok'
