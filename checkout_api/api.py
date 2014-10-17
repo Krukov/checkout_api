@@ -51,6 +51,18 @@ class CheckoutApi(object):
     CANCELED_STATUS = 'CANCELED_BEFORE_SHIPMENT'
     CREATED_STATUS = 'CREATED'
 
+    STATUSES = {
+        CANCELED_STATUS: 'Отмена до отправки',
+        CREATED_STATUS: 'Создан',
+        'FORMED': 'Сформирован',
+        'IN_SENDING': 'В отправке',
+        'DELIVERED': 'Доставлен',
+        'PARTIALY_DELIVERED': 'Доставлен частично',
+        'CANCELED_AT_DELIVERY': 'Отмена при доставке',
+        'LOS_DAMAGE': 'Потеря, порча',
+        'CONFIRMED': 'Доставка клиенткого возврата',
+    }
+
     def __init__(self, key):
         self._key = key
 
@@ -231,7 +243,7 @@ class CheckoutApi(object):
 
     def get_status_history(self, order_id):
         """
-        История смены статуса заказа
+        История статуса заказа
         """
         url = self.__urls['platformstatushistory'] + order_id
         return self._response(url, data={'API_KEY': self._key}, ticket=False)
