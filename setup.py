@@ -23,13 +23,9 @@ setup(
     long_description=open('README.rst').read(),
     requires=[
         'requests (>=2.4)',
-        'responses (>=0.3)',
-        'six (>=1.7.3)',
     ],
     install_requires=[
         'requests >=2.4',
-        'responses >=0.3',
-        'six >=1.7.3',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

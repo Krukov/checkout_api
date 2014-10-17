@@ -6,7 +6,7 @@ python:
   - "3.4"
 
 install:
-  - pip install coverage pytest coveralls
+  - pip install requirements_test.txt
   - pip install .
 
 script: py.test

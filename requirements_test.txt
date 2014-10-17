@@ -1,5 +1,5 @@
-pytest==2.6.3
-responses==0.3.0
-six==1.8.0
+pytest>=2.6.3
+responses>=0.3.0
+six>=1.8.0
 coverage
 coveralls
