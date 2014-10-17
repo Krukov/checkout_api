@@ -120,7 +120,7 @@ class CheckoutApi(object):
         Получение списка населных пунктов
         """
         resp = self._response('getPlacesByQuery', data={'place': query})
-        return rest.get('suggestions')
+        return resp.get('suggestions')
 
     def calculation(self, place, price, weight, count, assessed=None):
         """
@@ -166,7 +166,7 @@ class CheckoutApi(object):
         return self._response('getPlaceByPostalCode', data={'postIndex': code})
 
     def __order(self, goods, delivery, user, comment,
-                order_id, payment_method, delivery_cost=None, edit=False):
+                order_id, payment_method, delivery_cost=None, edit=None):
         if payment_method not in ['cash', 'prepay']:
             raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
         data = {
@@ -175,12 +175,12 @@ class CheckoutApi(object):
             'user': user,
             'comment': comment, 
             'shopOrderId': order_id,
-            'paymentMethod': paymentMethod,
+            'paymentMethod': payment_method,
             'forcedCost': delivery_cost,
-            }
-            url = 'createOrder'
-            if edit:
-                url = self.__urls['createOrder'] + edit
+        }
+        url = 'createOrder'
+        if edit:
+            url = self.__urls['createOrder'] + edit
         return self._response(url, method='post', data=data)
 
     def create_order(self, *args, **kwargs):
@@ -201,15 +201,15 @@ class CheckoutApi(object):
                 "cost": итогвое значение стоимости доставки по даному закзу.
             }
         """
-        return self.__order(*args, **kwargs, edit=False)
+        return self.__order(*args, **kwargs)
 
     def edit_order(self, *args, **kwargs):
-        return self.__order(*args, **kwargs, edit=kwargs.pop('id'))
+        return self.__order(*args, edit=kwargs.pop('id'), **kwargs)
 
     def _change_status(self, order_id, status):
         url = self.__urls['status'] + order_id
         return self._response(url, method='post', data={'status': status})
-or
+
     def cancel_order(self, order_id):
         """
         Перевод заказа в статус отмены
@@ -220,7 +220,7 @@ or
         """
         Если заказ в статусе отмены то его можно перевести в статус создан
         """
-        return self._change_status(order_id, self.CREATED)
+        return self._change_status(order_id, self.CREATED_STATUS)
 
     def get_order_info(self, order_id):
         """
