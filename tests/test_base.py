@@ -43,7 +43,7 @@ def callback(request):
         payload.pop('ticket', None)
         payload.pop('API_KEY', None)
     elif request.method.upper() == 'POST':
-        payload = dict(parse_qsl(request.body))
+        payload = json.loads(request.body)
         if not 'apiKey' in payload:
             return _response(400)
         payload.pop('apiKey', None)
@@ -140,7 +140,7 @@ def test_create_order():
                             comment='comment', order_id='order',
                             payment_method='cash')
     assert resp['status'] == 'ok'
-    assert resp['data'] == {'goods': '[0, 1]', 'delivery': 'delivery',
+    assert resp['data'] == {'goods': [0, 1], 'delivery': 'delivery',
                             'user': 'user', 'comment': 'comment', 'shopOrderId': 'order',
                             'paymentMethod': 'cash'}
 

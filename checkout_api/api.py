@@ -104,8 +104,9 @@ class CheckoutApi(object):
         
         if ticket and method == 'GET':
             data['ticket'] = self.ticket
-        elif method == 'POST':
+        if method == 'POST':
             data['apiKey'] = self._key
+            data = json.dumps(data)
 
         session = Session()
         request = Request(method, self.__build_full_url(name),
@@ -183,7 +184,7 @@ class CheckoutApi(object):
         if payment_method not in ['cash', 'prepay']:
             raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
         data = {
-            'goods': json.dumps(list(goods)),
+            'goods': list(goods),
             'delivery': delivery,
             'user': user,
             'comment': comment, 
