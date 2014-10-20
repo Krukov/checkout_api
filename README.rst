@@ -19,13 +19,16 @@ Checkout API python wrapper
 
 Python wrapper for Chechout API (http://www.checkout.ru/, https://platform.checkout.ru/files/Checkout.API.1.9.7.pdf) 
 
+================
+WORK in PROGRESS
+================
 
 Installation
 ============
 
 ::
 
-    pip install checkout_api
+    # pip install checkout_api - coming soon
 
 
 Usage
