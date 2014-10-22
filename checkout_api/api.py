@@ -40,7 +40,7 @@ def log_method(func):
     def res_func(*args, **kwargs):
         name = func.__name__
         logger.info("Call method {name} with {data}".format(
-            name=name, data=list(args[1:]) + kwargs.values()
+            name=name, data=list(args[1:]) + list(kwargs.values())
         ))
         result = func(*args, **kwargs)
         logger.info('Method {name} return {data}'.format(
