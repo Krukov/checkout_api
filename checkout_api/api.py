@@ -2,18 +2,23 @@
 
 import datetime
 import json
+import sys
+import logging
 from copy import deepcopy
+from functools import wraps
 
 from requests import Request, Session
 
 __all__ = ['CheckoutApi']
 
+
+logger = logging.getLogger('checkout_api')
 _request_params = {'headers': {'User-Agent': 'Python api wrapper'}}
 
 
 class _Cache(object):
     _cache = {}
-    
+
     def __set__(self, instance, value):
         if instance is None:
             return
@@ -30,9 +35,24 @@ class _Cache(object):
         cls._cache = {}
 
 
+def log_method(func):
+    @wraps(func)
+    def res_func(*args, **kwargs):
+        name = func.__name__
+        logger.info("Call method {name} with {data}".format(
+            name=name, data=list(args[1:]) + kwargs.values()
+        ))
+        result = func(*args, **kwargs)
+        logger.info('Method {name} return {data}'.format(
+            name=name, data=result
+        ))
+        return result
+    return res_func
+
+
 class CheckoutApi(object):
     """Checkout Api (http://www.checkout.ru/)"""
-    
+
     _cache = _Cache()  # cross instance cache for ticket and so on
     __ticket__timeout = 60 * 60
     __host = 'http://platform.checkout.ru/'
@@ -71,7 +91,7 @@ class CheckoutApi(object):
     def ticket(self):
         """
         Session key
-        Used is some api methods like signature, 
+        Used is some api methods like signature,
         valid only in 60 min(update after using)
         """
         if 'ticket' not in self._cache.keys():
@@ -101,7 +121,7 @@ class CheckoutApi(object):
     def _response(self, name, method='GET', data={}, ticket=True):
         data = deepcopy(data)
         method = method.upper()
-        
+
         if ticket and method == 'GET':
             data['ticket'] = self.ticket
         if method == 'POST':
@@ -128,7 +148,8 @@ class CheckoutApi(object):
         self.__host = value
 
     # METHODS
-    
+
+    @log_method
     def get_places(self, query):
         """
         Получение списка населных пунктов
@@ -136,6 +157,7 @@ class CheckoutApi(object):
         resp = self._response('getPlacesByQuery', data={'place': query})
         return resp.get('suggestions')
 
+    @log_method
     def calculation(self, place, price, weight, count, assessed=None):
         """
         Расчет стоимости и сроков доставки
@@ -150,6 +172,7 @@ class CheckoutApi(object):
         resp = self._response('calculation', data=data)
         return resp
 
+    @log_method
     def get_streets(self, place, query):
         """
         Получение списка улиц
@@ -158,6 +181,7 @@ class CheckoutApi(object):
                               data={'placeId': place, 'street': query})
         return resp.get('suggestions')
 
+    @log_method
     def get_postcode(self, street, house, housing=None, building=None):
         """
         Получение почтового индекса
@@ -173,6 +197,7 @@ class CheckoutApi(object):
         resp = self._response('getPostalCodeByAdress', data=data)
         return resp.get('postindex')
 
+    @log_method
     def get_place_by_postcode(self, code):
         """
         Получение населного пункта по почтовму индексу
@@ -182,18 +207,19 @@ class CheckoutApi(object):
     def __order(self, goods, delivery, user, comment,
                 order_id, payment_method, delivery_cost=None, edit=None):
         if payment_method not in ['cash', 'prepay']:
-            raise ValueError('payment_method can be "cash" or "prepay"')  # TODO: create special exception
+            # TODO: create special exception
+            raise ValueError('payment_method can be "cash" or "prepay"')
         data = {
             'goods': list(goods),
             'delivery': delivery,
             'user': user,
-            'comment': comment, 
+            'comment': comment,
             'shopOrderId': order_id,
             'paymentMethod': payment_method,
         }
         if delivery_cost is not None:
             data['forcedCost'] = delivery_cost
-        
+
         url = 'createOrder'
         if edit:
             url = self.__urls['createOrder'] + edit
@@ -203,6 +229,7 @@ class CheckoutApi(object):
     def create_delivery(**kwargs):
         pass  # TODO
 
+    @log_method
     def create_order(self, *args, **kwargs):
         """
         Создние заказа
@@ -214,7 +241,7 @@ class CheckoutApi(object):
         :param order_id: order number in shop system
         :param payment_method: can be 'cash' or 'prepay'
         :param delivery_cost: price for delivery (see 'calculation' method)
-        :return dict like 
+        :return dict like
             "order": {"id": номер закза в платформе, тип - натуральное},
             "delivery": {
                 "id": идентифкатор службы доставки, тип - натуральное "serviceName": "название службы доставки", тип - строка
@@ -223,6 +250,7 @@ class CheckoutApi(object):
         """
         return self.__order(*args, **kwargs)
 
+    @log_method
     def edit_order(self, *args, **kwargs):
         return self.__order(*args, edit=kwargs.pop('id'), **kwargs)
 
@@ -230,18 +258,21 @@ class CheckoutApi(object):
         url = self.__urls['status'] + order_id
         return self._response(url, method='post', data={'status': status})
 
+    @log_method
     def cancel_order(self, order_id):
         """
         Перевод заказа в статус отмены
         """
         return self._change_status(order_id, self.CANCELED_STATUS)
 
+    @log_method
     def change_status_to_created(self, order_id):
         """
         Если заказ в статусе отмены то его можно перевести в статус создан
         """
         return self._change_status(order_id, self.CREATED_STATUS)
 
+    @log_method
     def get_order_info(self, order_id):
         """
         История смены статуса заказа и информация о  заказе
@@ -249,9 +280,22 @@ class CheckoutApi(object):
         url = self.__urls['statushistory'] + order_id
         return self._response(url, data={'API_KEY': self._key}, ticket=False)
 
+    @log_method
     def get_status_history(self, order_id):
         """
         История статуса заказа
         """
         url = self.__urls['platformstatushistory'] + order_id
         return self._response(url, data={'API_KEY': self._key}, ticket=False)
+
+
+# INIT Logger default settings
+if not logger.handlers:
+    logger.setLevel(logging.WARNING)
+    formatter = logging.Formatter(
+        '%(asctime)s.%(msecs)d %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S'
+    )
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
