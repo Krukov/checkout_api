@@ -6,6 +6,7 @@ import sys
 import logging
 from copy import deepcopy
 from functools import wraps
+from enum import Enum
 
 from requests import Request, Session
 
@@ -61,28 +62,45 @@ class CheckoutApi(object):
         'getPlacesByQuery': 'service/checkout/getPlacesByQuery/',
         'calculation': 'service/checkout/calculation/',
         'getStreetsByQuery': 'service/checkout/getStreetsByQuery/',
-        'getPostalCodeByAdress': 'service/checkout/getPostalCodeByAdress/',
+        'getPostalCodeByAddress': 'service/checkout/getPostalCodeByAdress/',
         'getPlaceByPostalCode': 'service/checkout/getPlaceByPostalCode/',
         'createOrder': 'service/order/create/',
-        'status': 'service/order/staus/',
+        'status': 'service/order/status/',
         'statushistory': 'service/order/statushistory/',
         'platformstatushistory': 'service/order/platformstatushistory/',
     }
 
-    CANCELED_STATUS = 'CANCELED_BEFORE_SHIPMENT'
-    CREATED_STATUS = 'CREATED'
+    class STATUSES(Enum):
+        CANCELED = 'CANCELED_BEFORE_SHIPMENT'
+        CREATED = 'CREATED'
+        FORMED = 'FORMED'
+        IN_SENDING = 'IN_SENDING '
+        DELIVERED = 'DELIVERED'
+        PARTIAL = 'PARTIALY_DELIVERED'
+        CANCELED_DELIVERY = 'CANCELED_AT_DELIVERY'
+        LOSS = 'LOSS_DAMAGE'
+        CONFIRMED = 'CONFIRMED'
 
-    STATUSES = {
-        CANCELED_STATUS: 'Отмена до отправки',
-        CREATED_STATUS: 'Создан',
-        'FORMED': 'Сформирован',
-        'IN_SENDING': 'В отправке',
-        'DELIVERED': 'Доставлен',
-        'PARTIALY_DELIVERED': 'Доставлен частично',
-        'CANCELED_AT_DELIVERY': 'Отмена при доставке',
-        'LOS_DAMAGE': 'Потеря, порча',
-        'CONFIRMED': 'Доставка клиенткого возврата',
+    _STATUSES_STR = {
+        STATUSES.CANCELED: 'Отмена до отправки',
+        STATUSES.CREATED: 'Создан',
+        STATUSES.FORMED: 'Сформирован',
+        STATUSES.IN_SENDING: 'В отправке',
+        STATUSES.DELIVERED: 'Доставлен',
+        STATUSES.PARTIAL: 'Доставлен частично',
+        STATUSES.CANCELED_DELIVERY: 'Отмена при доставке',
+        STATUSES.LOSS: 'Потеря, порча',
+        STATUSES.CONFIRMED: 'Доставка клиенткого возврата',
     }
+
+    CHECKING_OPTION = 'checking'
+    PARTIAL_OPTION = 'partial'
+
+    class TYPES(Enum):
+        MAIL = 'mail'
+        EXPRESS = 'express'
+        PVZ = 'pvz'
+        POSTAMAT = 'postamat'
 
     def __init__(self, key):
         self._key = key
@@ -194,7 +212,7 @@ class CheckoutApi(object):
             data['housing'] = housing
         if building is not None:
             data['building'] = building
-        resp = self._response('getPostalCodeByAdress', data=data)
+        resp = self._response('getPostalCodeByAddress', data=data)
         return resp.get('postindex')
 
     @log_method
@@ -226,8 +244,26 @@ class CheckoutApi(object):
         return self._response(url, method='post', data=data)
 
     @staticmethod
-    def create_delivery(**kwargs):
-        pass  # TODO
+    def create_delivery(address, delivery, place, delivery_type, cost, min_day, max_day, options='none'):
+        if options not in ['none', CheckoutApi.CHECKING_OPTION, CheckoutApi.PARTIAL_OPTION]:
+            raise ValueError()
+        if delivery_type not in CheckoutApi.TYPES:
+            raise ValueError()
+        data = {
+            'deliveryId': delivery,
+            'placeFiasId': place,
+            'courierOptions': [options],
+            'type': delivery_type,
+            'cost': cost,
+            'minTerm': min_day,
+            'maxTerm': max_day,
+        }
+        if delivery_type in (CheckoutApi.TYPES.EXPRESS, CheckoutApi.TYPES.MAIL):
+            key = 'addressExpress'
+        else:
+            key = 'addressPvz'
+        data[key] = address
+        return data
 
     @log_method
     def create_order(self, *args, **kwargs):
@@ -263,14 +299,14 @@ class CheckoutApi(object):
         """
         Перевод заказа в статус отмены
         """
-        return self._change_status(order_id, self.CANCELED_STATUS)
+        return self._change_status(order_id, self.STATUSES.CANCELED_STATUS)
 
     @log_method
     def change_status_to_created(self, order_id):
         """
         Если заказ в статусе отмены то его можно перевести в статус создан
         """
-        return self._change_status(order_id, self.CREATED_STATUS)
+        return self._change_status(order_id, self.STATUSES.CREATED_STATUS)
 
     @log_method
     def get_order_info(self, order_id):
