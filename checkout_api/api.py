@@ -4,8 +4,8 @@ import datetime
 import json
 import sys
 import logging
+import inspect
 from copy import deepcopy
-from functools import wraps
 from enum import Enum
 
 from requests import Request, Session
@@ -34,21 +34,6 @@ class _Cache(object):
     @classmethod
     def clear(cls):
         cls._cache = {}
-
-
-def log_method(func):
-    @wraps(func)
-    def res_func(*args, **kwargs):
-        name = func.__name__
-        logger.info("Call method {name} with {data}".format(
-            name=name, data=list(args[1:]) + list(kwargs.values())
-        ))
-        result = func(*args, **kwargs)
-        logger.info('Method {name} return {data}'.format(
-            name=name, data=result
-        ))
-        return result
-    return res_func
 
 
 class CheckoutApi(object):
@@ -120,6 +105,26 @@ class CheckoutApi(object):
 
         return self._cache['ticket']
 
+    @staticmethod
+    def __log_method(name, *args, **kwargs):
+        logger.info("Call method {name} with {data}".format(
+            name=name, data=list(args[1:]) + list(kwargs.values())
+        ))
+        result = yield
+        logger.info('Method {name} return {data}'.format(
+            name=name, data=result
+        ))
+        yield
+
+    @staticmethod
+    def _log_method():
+        privios_stack = inspect.currentframe().f_back
+        name = privios_stack.f_code.co_name
+        kwargs = privios_stack.f_locals
+        _ = CheckoutApi.__log_method(name, **kwargs)
+        _.__next__()
+        return _
+
     def __check_ticket_time(self):
         if 'ticket_time' in self._cache:
             delta = datetime.datetime.now() - self._cache.get('ticket_time')
@@ -167,15 +172,15 @@ class CheckoutApi(object):
 
     # METHODS
 
-    @log_method
     def get_places(self, query):
         """
         Получение списка населных пунктов
         """
+        log = self._log_method()
         resp = self._response('getPlacesByQuery', data={'place': query})
+        log.send(resp)
         return resp.get('suggestions')
 
-    @log_method
     def calculation(self, place, price, weight, count, assessed=None):
         """
         Расчет стоимости и сроков доставки
@@ -190,7 +195,6 @@ class CheckoutApi(object):
         resp = self._response('calculation', data=data)
         return resp
 
-    @log_method
     def get_streets(self, place, query):
         """
         Получение списка улиц
@@ -199,7 +203,6 @@ class CheckoutApi(object):
                               data={'placeId': place, 'street': query})
         return resp.get('suggestions')
 
-    @log_method
     def get_postcode(self, street, house, housing=None, building=None):
         """
         Получение почтового индекса
@@ -215,7 +218,6 @@ class CheckoutApi(object):
         resp = self._response('getPostalCodeByAddress', data=data)
         return resp.get('postindex')
 
-    @log_method
     def get_place_by_postcode(self, code):
         """
         Получение населного пункта по почтовму индексу
@@ -265,7 +267,6 @@ class CheckoutApi(object):
         data[key] = address
         return data
 
-    @log_method
     def create_order(self, *args, **kwargs):
         """
         Создние заказа
@@ -286,7 +287,6 @@ class CheckoutApi(object):
         """
         return self.__order(*args, **kwargs)
 
-    @log_method
     def edit_order(self, *args, **kwargs):
         return self.__order(*args, edit=kwargs.pop('id'), **kwargs)
 
@@ -294,21 +294,18 @@ class CheckoutApi(object):
         url = self.__urls['status'] + order_id
         return self._response(url, method='post', data={'status': status})
 
-    @log_method
     def cancel_order(self, order_id):
         """
         Перевод заказа в статус отмены
         """
         return self._change_status(order_id, self.STATUSES.CANCELED_STATUS)
 
-    @log_method
     def change_status_to_created(self, order_id):
         """
         Если заказ в статусе отмены то его можно перевести в статус создан
         """
         return self._change_status(order_id, self.STATUSES.CREATED_STATUS)
 
-    @log_method
     def get_order_info(self, order_id):
         """
         История смены статуса заказа и информация о  заказе
@@ -316,7 +313,6 @@ class CheckoutApi(object):
         url = self.__urls['statushistory'] + order_id
         return self._response(url, data={'API_KEY': self._key}, ticket=False)
 
-    @log_method
     def get_status_history(self, order_id):
         """
         История статуса заказа
