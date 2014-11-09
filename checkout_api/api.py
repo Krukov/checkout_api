@@ -122,7 +122,7 @@ class CheckoutApi(object):
         name = privios_stack.f_code.co_name
         kwargs = privios_stack.f_locals
         _ = CheckoutApi.__log_method(name, **kwargs)
-        _ = next(_)
+        next(_)
         return _
 
     def __check_ticket_time(self):
