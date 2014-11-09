@@ -122,7 +122,7 @@ class CheckoutApi(object):
         name = privios_stack.f_code.co_name
         kwargs = privios_stack.f_locals
         _ = CheckoutApi.__log_method(name, **kwargs)
-        _.__next__()
+        _ = next(_)
         return _
 
     def __check_ticket_time(self):
@@ -143,17 +143,21 @@ class CheckoutApi(object):
 
     def _response(self, name, method='GET', data={}, ticket=True):
         data = deepcopy(data)
+        _params = deepcopy(_request_params)
         method = method.upper()
+        _param = 'params'
 
         if ticket and method == 'GET':
             data['ticket'] = self.ticket
         if method == 'POST':
             data['apiKey'] = self._key
             data = json.dumps(data)
+            _param = 'data'
 
+        _params[_param] = data
         session = Session()
         request = Request(method, self.__build_full_url(name),
-                          data=data, **_request_params)
+                          **_params)
         resp = session.send(session.prepare_request(request))
         return self._process_result(resp)
 
