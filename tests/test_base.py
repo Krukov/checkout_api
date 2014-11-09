@@ -26,9 +26,9 @@ def callback(request):
         return status, {}, json.dumps(response)
     
     if request.method.upper() == 'GET':
-        payload = dict(parse_qsl(request.body or ''))
+        payload = dict(parse_qsl(request.url.split('?', 1)[1] if '?' in request.url else ''))
 
-        if 'ticket' in request.url:
+        if 'ticket' in request.url and 'ticket' not in payload:
             if request.url.split('/')[-1] == _test_api_key:
                 response.update({'ticket': _ticket_test,
                                  'reciverEmailNotRequired': True})
