@@ -321,7 +321,7 @@ class CheckoutApi(object):
         """
         История статуса заказа
         """
-        url = self.__urls['platformstatushistory'] + order_id
+        url = self.__urls['platformstatushistory'] + str(order_id)
         return self._response(url, data={'API_KEY': self._key}, ticket=False)
 
 
