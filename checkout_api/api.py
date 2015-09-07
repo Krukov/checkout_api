@@ -4,7 +4,7 @@ import datetime
 import json
 import sys
 import logging
-import inspect
+import base64
 from copy import deepcopy
 from enum import Enum
 
@@ -105,26 +105,6 @@ class CheckoutApi(object):
 
         return self._cache['ticket']
 
-    @staticmethod
-    def __log_method(name, *args, **kwargs):
-        logger.info("Call method {name} with {data}".format(
-            name=name, data=list(args[1:]) + list(kwargs.values())
-        ))
-        result = yield
-        logger.info('Method {name} return {data}'.format(
-            name=name, data=result
-        ))
-        yield
-
-    @staticmethod
-    def _log_method():
-        privios_stack = inspect.currentframe().f_back
-        name = privios_stack.f_code.co_name
-        kwargs = privios_stack.f_locals
-        _ = CheckoutApi.__log_method(name, **kwargs)
-        next(_)
-        return _
-
     def __check_ticket_time(self):
         if 'ticket_time' in self._cache:
             delta = datetime.datetime.now() - self._cache.get('ticket_time')
@@ -141,7 +121,14 @@ class CheckoutApi(object):
         _dir = cls.__urls.get(name, name)
         return cls.__host + _dir
 
-    def _response(self, name, method='GET', data={}, ticket=True):
+    def _response(self, name, method='GET', data={}, **kwargs):
+        res = self.__response(name, method=method, data=data, **kwargs)
+        key = '%s_%s_%s' % (name, method, base64.encodestring(str(data)))
+        self._cache['last'] = key
+        self._cache[key] = res
+        return res
+
+    def __response(self, name, method='GET', data={}, ticket=True):
         data = deepcopy(data)
         _params = deepcopy(_request_params)
         method = method.upper()
@@ -180,9 +167,7 @@ class CheckoutApi(object):
         """
         Получение списка населных пунктов
         """
-        log = self._log_method()
         resp = self._response('getPlacesByQuery', data={'place': query})
-        log.send(resp)
         return resp.get('suggestions')
 
     def calculation(self, place, price, weight, count, assessed=None):
@@ -230,9 +215,9 @@ class CheckoutApi(object):
 
     def __order(self, goods, delivery, user, comment,
                 order_id, payment_method, delivery_cost=None, edit=None):
-        if payment_method not in ['cash', 'prepay']:
+        if payment_method not in ['cash', 'nocashpay']:
             # TODO: create special exception
-            raise ValueError('payment_method can be "cash" or "prepay"')
+            raise ValueError('payment_method can be "cash" or "nocashpay"')
         data = {
             'goods': list(goods),
             'delivery': delivery,
@@ -250,15 +235,13 @@ class CheckoutApi(object):
         return self._response(url, method='post', data=data)
 
     @staticmethod
-    def create_delivery(address, delivery, place, delivery_type, cost, min_day, max_day, options='none'):
-        if options not in ['none', CheckoutApi.CHECKING_OPTION, CheckoutApi.PARTIAL_OPTION]:
-            raise ValueError()
-        if delivery_type not in CheckoutApi.TYPES:
+    def create_delivery(address, delivery, place, delivery_type, cost, min_day, max_day, options=None):
+        if options not in [None, CheckoutApi.CHECKING_OPTION, CheckoutApi.PARTIAL_OPTION]:
             raise ValueError()
         data = {
             'deliveryId': delivery,
             'placeFiasId': place,
-            'courierOptions': [options],
+            'courierOptions': [options or 'none'],
             'type': delivery_type,
             'cost': cost,
             'minTerm': min_day,
@@ -280,7 +263,7 @@ class CheckoutApi(object):
         :param user: dict with keys - fullname, email, phone
         :param comment: just comment
         :param order_id: order number in shop system
-        :param payment_method: can be 'cash' or 'prepay'
+        :param payment_method: can be 'cash' or 'nocashpay'
         :param delivery_cost: price for delivery (see 'calculation' method)
         :return dict like
             "order": {"id": номер закза в платформе, тип - натуральное},
