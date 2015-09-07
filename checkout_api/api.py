@@ -5,6 +5,7 @@ import json
 import sys
 import logging
 import base64
+import types
 from copy import deepcopy
 from enum import Enum
 
@@ -15,6 +16,15 @@ __all__ = ['CheckoutApi']
 
 logger = logging.getLogger('checkout_api')
 _request_params = {'headers': {'User-Agent': 'Python api wrapper'}}
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+
+
+def force_encode(v):
+    if PY2:
+        return v.encode('utf-8') if isinstance(v, unicode) else str(v)
+    return str(v).encode('utf-8')
 
 
 class _Cache(object):
@@ -123,7 +133,7 @@ class CheckoutApi(object):
 
     def _response(self, name, method='GET', data={}, **kwargs):
         res = self.__response(name, method=method, data=data, **kwargs)
-        key = '%s_%s_%s' % (name, method, base64.encodestring(bytes(data)))
+        key = '%s_%s_%s' % (name, method, base64.encodestring(force_encode(data)))
         self._cache['last'] = key
         self._cache[key] = res
         return res
