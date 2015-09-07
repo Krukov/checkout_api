@@ -123,7 +123,7 @@ class CheckoutApi(object):
 
     def _response(self, name, method='GET', data={}, **kwargs):
         res = self.__response(name, method=method, data=data, **kwargs)
-        key = '%s_%s_%s' % (name, method, base64.encodestring(str(data)))
+        key = '%s_%s_%s' % (name, method, base64.encodestring(bytes(data)))
         self._cache['last'] = key
         self._cache[key] = res
         return res
@@ -152,6 +152,7 @@ class CheckoutApi(object):
         if response.ok:
             self._cache['ticket_time'] = datetime.datetime.now()
             return response.json()
+        logger.error('Response end with status %s: %s', response.status_code, response.content)
         response.raise_for_status()
 
     @classmethod
