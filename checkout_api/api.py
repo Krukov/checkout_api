@@ -139,7 +139,7 @@ class CheckoutApi(object):
         if method == 'POST':
             data['apiKey'] = self._key
             data = json.dumps(data)
-            _param = 'data'
+            _param = 'json'
 
         _params[_param] = data
         session = Session()

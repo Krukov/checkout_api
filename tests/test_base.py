@@ -43,7 +43,7 @@ def callback(request):
         payload.pop('ticket', None)
         payload.pop('API_KEY', None)
     elif request.method.upper() == 'POST':
-        payload = json.loads(request.body)
+        payload = json.loads(request.body.replace('"{', '{').replace('}"', '}').replace('\\"', '"'))
         if not 'apiKey' in payload:
             return _response(400)
         payload.pop('apiKey', None)
