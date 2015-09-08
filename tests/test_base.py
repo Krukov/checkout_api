@@ -140,9 +140,10 @@ def test_create_order():
                             comment='comment', order_id='order',
                             payment_method='cash')
     assert resp['status'] == 'ok'
-    assert resp['data'] == {'goods': [0, 1], 'delivery': 'delivery',
+    assert resp['data'] == {'order': {'goods': [0, 1], 'delivery': 'delivery',
                             'user': 'user', 'comment': 'comment', 'shopOrderId': 'order',
-                            'paymentMethod': 'cash'}
+                            'paymentMethod': 'cash'}}
+
 
 @responses.activate
 @api_test

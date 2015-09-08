@@ -5,7 +5,6 @@ import json
 import sys
 import logging
 import base64
-import types
 from copy import deepcopy
 from enum import Enum
 
@@ -15,7 +14,7 @@ __all__ = ['CheckoutApi']
 
 
 logger = logging.getLogger('checkout_api')
-_request_params = {'headers': {'User-Agent': 'Python api wrapper'}}
+_request_params = {'headers': {'User-Agent': 'Python api wrapper', 'Content-Type': 'application/json'}}
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -148,8 +147,8 @@ class CheckoutApi(object):
             data['ticket'] = self.ticket
         if method == 'POST':
             data['apiKey'] = self._key
-            data = json.dumps(data)
-            _param = 'json'
+            data = json.dumps(data, indent=2, separators=(',', ':'))
+            _param = 'data'
 
         _params[_param] = data
         session = Session()
@@ -243,7 +242,7 @@ class CheckoutApi(object):
         url = 'createOrder'
         if edit:
             url = self.__urls['createOrder'] + edit
-        return self._response(url, method='post', data=data)
+        return self._response(url, method='post', data={'order': data})
 
     @staticmethod
     def create_delivery(address, delivery, place, delivery_type, cost, min_day, max_day, options=None):
