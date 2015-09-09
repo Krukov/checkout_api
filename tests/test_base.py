@@ -2,6 +2,7 @@
 
 import json
 import re
+from functools import wraps
 
 import pytest
 import responses
@@ -35,16 +36,17 @@ def callback(request):
                 return _response()
             else:
                 return _response(400)
-        if 'ticket' not in payload and 'API_KEY' not in payload:
+        if 'ticket' not in payload and 'API_KEY' not in payload and 'apiKey' not in payload:
             return _response(400)
         if not (payload.get('ticket') == _ticket_test
-                or payload.get('API_KEY') == _test_api_key):
+                or payload.get('API_KEY') == _test_api_key or payload['apiKey'] == _test_api_key):
             return _response(400)
         payload.pop('ticket', None)
         payload.pop('API_KEY', None)
+        payload.pop('apiKey', None)
     elif request.method.upper() == 'POST':
         payload = json.loads(request.body.replace('"{', '{').replace('}"', '}').replace('\\"', '"'))
-        if not 'apiKey' in payload:
+        if 'apiKey' not in payload:
             return _response(400)
         payload.pop('apiKey', None)
     response['status'] = 'ok'
@@ -64,6 +66,7 @@ api = CheckoutApi(_test_api_key)
 
 
 def api_test(func):
+    @wraps(func)
     def test():
         api._clear_cache()
         add_callbacks()

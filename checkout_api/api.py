@@ -308,14 +308,14 @@ class CheckoutApi(object):
         История смены статуса заказа и информация о  заказе
         """
         url = self.__urls['statushistory'] + order_id
-        return self._response(url, data={'API_KEY': self._key}, ticket=False)
+        return self._response(url, data={'apiKey': self._key}, ticket=False)
 
     def get_status_history(self, order_id):
         """
         История статуса заказа
         """
         url = self.__urls['platformstatushistory'] + str(order_id)
-        return self._response(url, data={'API_KEY': self._key}, ticket=False)
+        return self._response(url, data={'apiKey': self._key}, ticket=False)
 
 
 # INIT Logger default settings
