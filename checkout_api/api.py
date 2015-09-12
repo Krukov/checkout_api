@@ -6,7 +6,6 @@ import sys
 import logging
 import base64
 from copy import deepcopy
-from enum import Enum
 
 from requests import Request, Session
 
@@ -68,7 +67,7 @@ class CheckoutApi(object):
         'platformstatushistory': 'service/order/platformstatushistory/',
     }
 
-    class STATUSES(Enum):
+    class STATUSES:
         CANCELED = 'CANCELED_BEFORE_SHIPMENT'
         CREATED = 'CREATED'
         FORMED = 'FORMED'
@@ -94,7 +93,7 @@ class CheckoutApi(object):
     CHECKING_OPTION = 'checking'
     PARTIAL_OPTION = 'partial'
 
-    class TYPES(Enum):
+    class TYPES:
         MAIL = 'mail'
         EXPRESS = 'express'
         PVZ = 'pvz'
