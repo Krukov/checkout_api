@@ -26,6 +26,10 @@ def force_encode(v):
     return str(v).encode('utf-8')
 
 
+class CheckoutException(Exception):
+    pass
+
+
 class _Cache(object):
     _cache = {}
 
@@ -56,7 +60,7 @@ class CheckoutApi(object):
         'getPlacesByQuery': 'service/checkout/getPlacesByQuery/',
         'calculation': 'service/checkout/calculation/',
         'getStreetsByQuery': 'service/checkout/getStreetsByQuery/',
-        'getPostalCodeByAddress': 'service/checkout/getPostalCodeByAdress/',
+        'getPostalCodeByAddress': 'service/checkout/getPostalCodeByAddress/',
         'getPlaceByPostalCode': 'service/checkout/getPlaceByPostalCode/',
         'createOrder': 'service/order/create/',
         'status': 'service/order/status/',
@@ -160,7 +164,10 @@ class CheckoutApi(object):
     def _process_result(self, response):
         if response.ok:
             self._cache['ticket_time'] = datetime.datetime.now()
-            return response.json()
+            data = response.json()
+            if data.get('error', False):
+                raise CheckoutException('%s (code: %s)' % (data['errorMessage'], data['errorCode']))
+            return data
         logger.error('Response end with status %s: %s', response.status_code, response.content)
         response.raise_for_status()
 
