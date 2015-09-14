@@ -90,8 +90,10 @@ class CheckoutApi(object):
         STATUSES.CONFIRMED: 'Доставка клиенткого возврата',
     }
 
+    NONE_OPTION = 'none'
     CHECKING_OPTION = 'checking'
     PARTIAL_OPTION = 'partial'
+    FAST_OPTION = 'fastest'
 
     class TYPES:
         MAIL = 'mail'
@@ -252,7 +254,8 @@ class CheckoutApi(object):
 
     @staticmethod
     def create_delivery(address, delivery, place, delivery_type, cost, min_day, max_day, options=None):
-        if options not in [None, CheckoutApi.CHECKING_OPTION, CheckoutApi.PARTIAL_OPTION]:
+        if options not in [None, CheckoutApi.CHECKING_OPTION, CheckoutApi.PARTIAL_OPTION,
+                           CheckoutApi.NONE_OPTION, CheckoutApi.FAST_OPTION]:
             raise ValueError()
         data = {
             'deliveryId': delivery,
