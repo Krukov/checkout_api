@@ -231,19 +231,20 @@ class CheckoutApi(object):
         """
         return self._response('getPlaceByPostalCode', data={'postIndex': code})
 
-    def __order(self, goods, delivery, user, comment,
-                order_id, payment_method, delivery_cost=None, edit=None):
+    def __order(self, goods=None, delivery=None, user=None, comment=None,
+                order_id=None, payment_method=None, delivery_cost=None, edit=None):
         if payment_method not in ['cash', 'nocashpay']:
             # TODO: create special exception
             raise ValueError('payment_method can be "cash" or "nocashpay"')
         data = {
-            'goods': list(goods),
+            'goods': list(goods) if goods else None,
             'delivery': delivery,
             'user': user,
             'comment': comment,
             'shopOrderId': order_id,
             'paymentMethod': payment_method,
         }
+        data = dict([(key, value) for key, value in data.items() if value is not None])
         if delivery_cost is not None:
             data['forcedCost'] = delivery_cost
 
@@ -273,7 +274,7 @@ class CheckoutApi(object):
         data[key] = address
         return data
 
-    def create_order(self, *args, **kwargs):
+    def create_order(self, goods, delivery, user, comment, order_id, payment_method, **kwargs):
         """
         Создние заказа
         :param goods: array of order items. item is a dict with keys - name, code, variantCode,
@@ -291,7 +292,7 @@ class CheckoutApi(object):
                 "cost": итогвое значение стоимости доставки по даному закзу.
             }
         """
-        return self.__order(*args, **kwargs)
+        return self.__order(goods, delivery, user, comment, order_id, payment_method, **kwargs)
 
     def edit_order(self, *args, **kwargs):
         return self.__order(*args, edit=kwargs.pop('id'), **kwargs)
@@ -304,13 +305,13 @@ class CheckoutApi(object):
         """
         Перевод заказа в статус отмены
         """
-        return self._change_status(order_id, self.STATUSES.CANCELED_STATUS)
+        return self._change_status(order_id, self.STATUSES.CANCELED)
 
     def change_status_to_created(self, order_id):
         """
         Если заказ в статусе отмены то его можно перевести в статус создан
         """
-        return self._change_status(order_id, self.STATUSES.CREATED_STATUS)
+        return self._change_status(order_id, self.STATUSES.CREATED)
 
     def get_order_info(self, order_id):
         """
